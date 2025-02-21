@@ -1,0 +1,19 @@
+{
+  "name": "rtx-simulation",
+  "version": "1.0.0",
+  "description": "A simulation of RTX system behavior.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": [
+    "RTX",
+    "simulation",
+    "performance"
+  ],
+  "author": "",
+  "license": "ISC"
+}
