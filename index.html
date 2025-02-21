@@ -29,7 +29,7 @@
 <body>
   <script type="module">
     import * as THREE from "three";
-    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
     // Configuração básica do renderizador
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -45,9 +45,36 @@
     camera.position.set(10, 10, 20);
     camera.lookAt(0, 0, 0);
 
-    // Controles da câmera (OrbitControls)
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    // Controles da câmera (PointerLockControls)
+    const controls = new PointerLockControls(camera, document.body);
+
+    const instructions = document.createElement("div");
+    instructions.textContent = "Click to start FPS mode";
+    instructions.style.position = "absolute";
+    instructions.style.top = "50%";
+    instructions.style.width = "100%";
+    instructions.style.color = "#fff";
+    instructions.style.textAlign = "center";
+    instructions.style.cursor = "pointer";
+    document.body.appendChild(instructions);
+
+    instructions.addEventListener("click", () => {
+      controls.lock();
+    });
+
+    controls.addEventListener("lock", () => {
+      instructions.style.display = "none";
+    });
+    controls.addEventListener("unlock", () => {
+      instructions.style.display = "";
+    });
+
+    // Basic WASD movement:
+    const keys = {};
+    window.addEventListener("keydown", (e) => (keys[e.key.toLowerCase()] = true));
+    window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
+
+    const velocity = new THREE.Vector3();
 
     // Criando um chão
     const planeGeometry = new THREE.PlaneGeometry(50, 50);
@@ -78,7 +105,16 @@
     // Função de animação
     function animate() {
       requestAnimationFrame(animate);
-      controls.update(); // Atualiza a suavidade do OrbitControls
+      if (controls.isLocked === true) {
+        const speed = 0.1;
+        if (keys["w"]) velocity.z = -speed;
+        if (keys["s"]) velocity.z = speed;
+        if (keys["a"]) velocity.x = -speed;
+        if (keys["d"]) velocity.x = speed;
+        controls.moveRight(velocity.x);
+        controls.moveForward(-velocity.z);
+        velocity.set(0, 0, 0);
+      }
       renderer.render(scene, camera);
     }
     animate();
