@@ -27,6 +27,7 @@
   </script>
 </head>
 <body>
+  <div id="coordinates" style="position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px;"></div>
   <script type="module">
     import * as THREE from "three";
     import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
@@ -75,6 +76,9 @@
     window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
     const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const gravity = new THREE.Vector3(0, -9.8, 0);
+    const clock = new THREE.Clock();
 
     // Criando um chão
     const planeGeometry = new THREE.PlaneGeometry(50, 50);
@@ -102,19 +106,41 @@
     cube.position.set(0, 1, 0);
     scene.add(cube);
 
+    const coordinatesDisplay = document.getElementById("coordinates");
+
     // Função de animação
     function animate() {
       requestAnimationFrame(animate);
+
       if (controls.isLocked === true) {
-        const speed = 0.1;
-        if (keys["w"]) velocity.z = -speed;
-        if (keys["s"]) velocity.z = speed;
-        if (keys["a"]) velocity.x = -speed;
-        if (keys["d"]) velocity.x = speed;
-        controls.moveRight(velocity.x);
-        controls.moveForward(-velocity.z);
-        velocity.set(0, 0, 0);
+        const delta = clock.getDelta();
+        velocity.y += gravity.y * delta; // Apply gravity
+
+        direction.z = Number(keys["w"]) - Number(keys["s"]);
+        direction.x = Number(keys["a"]) - Number(keys["d"]);
+        direction.normalize(); // Ensure consistent movement in all directions
+
+        if (keys["w"] || keys["s"]) velocity.z -= direction.z * 400.0 * delta;
+        if (keys["a"] || keys["d"]) velocity.x -= direction.x * 400.0 * delta;
+
+        controls.moveRight(-velocity.x * delta);
+        controls.moveForward(-velocity.z * delta);
+
+        // Simple collision detection with the ground
+        if (camera.position.y + velocity.y * delta < 1.75) {
+          velocity.y = 0;
+          camera.position.y = 1.75;
+        } else {
+          camera.position.y += velocity.y * delta;
+        }
+
+        velocity.x -= velocity.x * 10.0 * delta;
+        velocity.z -= velocity.z * 10.0 * delta;
+
+        // Update coordinates display
+        coordinatesDisplay.textContent = `X: ${camera.position.x.toFixed(2)}, Y: ${camera.position.y.toFixed(2)}, Z: ${camera.position.z.toFixed(2)}`;
       }
+
       renderer.render(scene, camera);
     }
     animate();
