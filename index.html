@@ -34,6 +34,7 @@
 
     // Configuração básica do renderizador
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
@@ -85,6 +86,7 @@
     const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, side: THREE.DoubleSide });
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.rotation.x = -Math.PI / 2;
+    plane.receiveShadow = true;
     scene.add(plane);
 
     // Adicionando uma grade no chão
@@ -104,7 +106,53 @@
     const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
     const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
     cube.position.set(0, 1, 0);
+    cube.castShadow = true;
     scene.add(cube);
+
+    // Add a point light next to the cube
+    const pointLight = new THREE.PointLight(0xffffff, 1, 50);
+    pointLight.position.set(3, 2, 0); // Adjust position as needed
+    pointLight.castShadow = true;
+    scene.add(pointLight);
+
+    // Add a sprite to the point light for a 2D white circle appearance
+    const spriteCanvas = document.createElement("canvas");
+    spriteCanvas.width = 64;
+    spriteCanvas.height = 64;
+    const spriteContext = spriteCanvas.getContext("2d");
+    spriteContext.fillStyle = "white";
+    spriteContext.beginPath();
+    spriteContext.arc(32, 32, 30, 0, 2 * Math.PI);
+    spriteContext.fill();
+
+    const spriteTexture = new THREE.CanvasTexture(spriteCanvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: spriteTexture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.scale.set(2, 2, 1); // Adjust scale for desired size
+    pointLight.add(sprite);
+
+    // Track light grab state
+    let isGrabbingLight = false;
+
+    window.addEventListener("keydown", (e) => {
+      // Existing keyboard handler for WASD...
+      if (e.key.toLowerCase() === "e") {
+        if (!isGrabbingLight) {
+          // Attach light to camera with an offset
+          camera.add(pointLight);
+          pointLight.position.set(1, -1, -2); // Offset relative to camera
+          isGrabbingLight = true;
+          console.log("Light grabbed");
+        } else {
+          // Detach light from camera and make it reappear at the player's position
+          camera.remove(pointLight);
+          pointLight.position.copy(camera.position);
+          scene.add(pointLight);
+          isGrabbingLight = false;
+          console.log("Light dropped at player position");
+        }
+      }
+    });
 
     const coordinatesDisplay = document.getElementById("coordinates");
 
