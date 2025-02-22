@@ -49,6 +49,7 @@
 
     // Controles da câmera (PointerLockControls)
     const controls = new PointerLockControls(camera, document.body);
+    controls.getObject().userData.mass = 60; // Set character weight to 60 kg
 
     const instructions = document.createElement("div");
     instructions.textContent = "Click to start FPS mode";
@@ -78,8 +79,21 @@
 
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
-    const gravity = new THREE.Vector3(0, -9.8, 0);
+    // Update the gravity vector to match real-life (approximately -9.81 m/s²) 
+    const gravity = new THREE.Vector3(0, -9.81, 0);
     const clock = new THREE.Clock();
+
+    // Add below the existing key event listeners for jump functionality:
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        const playerPos = controls.getObject().position;
+        // Check if the player is on the ground (approximately)
+        if (playerPos.y <= 1.76) {
+          velocity.y = 4; // Set jump impulse (adjust as needed)
+          console.log("Jump!");
+        }
+      }
+    });
 
     // Criando um chão
     const planeGeometry = new THREE.PlaneGeometry(50, 50);
@@ -117,8 +131,9 @@
 
     // Add physics properties to pointLight
     pointLight.userData.velocity = new THREE.Vector3();
-    pointLight.userData.mass = 1;
-    const lightGravity = new THREE.Vector3(0, -9.8, 0);
+    pointLight.userData.mass = 20; // Update the pointLight mass to 20 kg (from 1)
+    // For the light ball physics, update lightGravity similarly:
+    const lightGravity = new THREE.Vector3(0, -9.81, 0);
 
     // Add a sprite to the point light for a 2D white circle appearance
     const spriteCanvas = document.createElement("canvas");
@@ -141,8 +156,24 @@
 
     window.addEventListener("keydown", (e) => {
       if (e.key.toLowerCase() === "e") {
-        isGrabbingLight = !isGrabbingLight;
-        console.log(`Light grabbing toggled: ${isGrabbingLight}`);
+        if (isGrabbingLight) {
+          // Drop the light: remove from camera, compute forward vector, set initial throw velocity
+          camera.remove(pointLight);
+          const worldPos = new THREE.Vector3();
+          camera.getWorldPosition(worldPos);
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          worldPos.add(forward.clone().multiplyScalar(2)); // place light 2 units in front of camera
+          pointLight.position.copy(worldPos);
+          // Set the initial throw velocity (adjust speed as desired)
+          pointLight.userData.velocity.copy(forward.multiplyScalar(10));
+          scene.add(pointLight);
+          isGrabbingLight = false;
+          console.log("Light dropped and thrown forward");
+        } else {
+          // Grab the light: it will follow the camera
+          isGrabbingLight = true;
+          console.log("Light grabbed");
+        }
       }
     });
 
