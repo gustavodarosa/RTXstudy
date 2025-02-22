@@ -54,6 +54,7 @@
   <div id="menu">
     <h2>Debug Menu</h2>
     <button id="toggleWireframe">Toggle Wireframe</button>
+    <button id="toggleLightAttenuation">Toggle Light Attenuation</button>
   </div>
   <script type="module">
     import * as THREE from "three";
@@ -146,25 +147,21 @@
     scene.add(plane);
 
     // Adicionando uma grade no chão
-    const gridHelper = new THREE.GridHelper(50, 50);
-    scene.add(gridHelper);
+    // scene.add(gridHelper);
 
     // Iluminação
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    scene.add(directionalLight);
-
-    // Add a target for the directional light
-    const directionalLightTarget = new THREE.Object3D();
-    scene.add(directionalLightTarget);
-    directionalLight.target = directionalLightTarget;
-
-    // Add a helper to visualize the directional light
-    const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5, 0x00ff00);
-    directionalLightHelper.visible = false; // Initially hide the helper
-    scene.add(directionalLightHelper);
+    // Disable directional light:
+    // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // scene.add(directionalLight);
+    // const directionalLightTarget = new THREE.Object3D();
+    // scene.add(directionalLightTarget);
+    // directionalLight.target = directionalLightTarget;
+    // const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5, 0x00ff00);
+    // directionalLightHelper.visible = false;
+    // scene.add(directionalLightHelper);
 
     // Criando um cubo para testar
     const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
@@ -174,24 +171,24 @@
     cube.castShadow = true;
     scene.add(cube);
 
-    // Add a point light next to the cube
-    const pointLight = new THREE.PointLight(0xffffff, 1, 50);
-    pointLight.position.set(3, 2, 0); // Adjust position as needed
+    // Create a point light with proper attenuation:
+    const pointLight = new THREE.PointLight(0xffffff, 1, 500, 3); // max range now 50 instead of 20
+    pointLight.position.set(3, 2, 0);
     pointLight.castShadow = true;
     scene.add(pointLight);
 
-    // Add a helper to visualize the point light
+    // Set higher quality shadow properties for the point light:
+    pointLight.shadow.mapSize.width = 512;
+    pointLight.shadow.mapSize.height = 512;
+    pointLight.shadow.camera.near = 1;
+    pointLight.shadow.camera.far = 50;
+
+    // Add a helper to visualize the point light (for debugging)
     const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.5, 0xff0000);
-    pointLightHelper.visible = false; // Initially hide the helper
+    pointLightHelper.visible = false;
     scene.add(pointLightHelper);
 
-    // Add physics properties to pointLight
-    pointLight.userData.velocity = new THREE.Vector3();
-    pointLight.userData.mass = 20; // Update the pointLight mass to 20 kg (from 1)
-    // For the light ball physics, update lightGravity similarly:
-    const lightGravity = new THREE.Vector3(0, -9.81, 0);
-
-    // Add a sprite to the point light for a 2D white circle appearance
+    // Add a sprite to represent the light's appearance:
     const spriteCanvas = document.createElement("canvas");
     spriteCanvas.width = 64;
     spriteCanvas.height = 64;
@@ -200,12 +197,17 @@
     spriteContext.beginPath();
     spriteContext.arc(32, 32, 30, 0, 2 * Math.PI);
     spriteContext.fill();
-
     const spriteTexture = new THREE.CanvasTexture(spriteCanvas);
     const spriteMaterial = new THREE.SpriteMaterial({ map: spriteTexture, transparent: true });
     const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(2, 2, 1); // Adjust scale for desired size
+    sprite.scale.set(2, 2, 1);
     pointLight.add(sprite);
+
+    // Add physics properties to pointLight
+    pointLight.userData.velocity = new THREE.Vector3();
+    pointLight.userData.mass = 20; // Update the pointLight mass to 20 kg (from 1)
+    // For the light ball physics, update lightGravity similarly:
+    const lightGravity = new THREE.Vector3(0, -9.81, 0);
 
     // Track light grab state
     let isGrabbingLight = false;
@@ -233,14 +235,20 @@
       }
     });
 
-    // Add keyboard shortcuts for brightness control:
+    // Add a flag for manual brightness control:
+    let manualBrightnessControl = false;
+
+    // Replace the existing brightness control event listener with this updated version:
     window.addEventListener("keydown", (e) => {
-        if (e.key === "+") {
+        if (e.key === "+" || e.key === "=") {
+             manualBrightnessControl = true;
              pointLight.intensity += 0.1;
-             console.log(`Light brightness increased to ${pointLight.intensity.toFixed(2)}`);
+             pointLight.intensity = Math.min(pointLight.intensity, 2); // Valor máximo, ajuste conforme necessário
+             console.log(`Light intensity increased to ${pointLight.intensity}`);
         } else if (e.key === "-") {
+             manualBrightnessControl = true;
              pointLight.intensity = Math.max(0, pointLight.intensity - 0.1);
-             console.log(`Light brightness decreased to ${pointLight.intensity.toFixed(2)}`);
+             console.log(`Light intensity decreased to ${pointLight.intensity}`);
         }
     });
 
@@ -267,7 +275,74 @@
       console.log(`Wireframe mode: ${cube.material.wireframe}, Point Light Helper: ${pointLightHelper.visible}, Directional Light Helper: ${directionalLightHelper.visible}`);
     });
 
+    // NEW: Add a flag for light attenuation and an event listener for the new button
+    let attenuationEnabled = true;
+
+    // Add an event listener for the new debug menu button:
+    document.getElementById("toggleLightAttenuation").addEventListener("click", () => {
+      attenuationEnabled = !attenuationEnabled;
+      if (!attenuationEnabled) {
+        pointLight.intensity = 1; // fixed intensity when disabled
+      } else {
+        updateLightIntensity(); // update based on height
+      }
+      console.log(`Light attenuation enabled: ${attenuationEnabled}`);
+    });
+
     const coordinatesDisplay = document.getElementById("coordinates");
+
+    // NEW: Function to update light intensity based on its height from the ground
+    function updateLightIntensity() {
+      if (attenuationEnabled && !manualBrightnessControl) {
+        const distanceFromGround = pointLight.position.y - 1; // ground assumed at y=1
+        const maxDistance = 20; // maximum distance for the intended falloff
+        const attenuationFactor = Math.max(0, (maxDistance - distanceFromGround) / maxDistance);
+        pointLight.intensity = 1 * attenuationFactor;
+      }
+    }
+
+    // NEW: Function to update the point light's physics (gravity, bounce) and update intensity
+    function updatePointLightPhysics(dt) {
+      if (!isGrabbingLight) {
+        pointLight.userData.velocity.add(lightGravity.clone().multiplyScalar(dt));
+        pointLight.position.add(pointLight.userData.velocity.clone().multiplyScalar(dt));
+        if (pointLight.position.y < 1) {
+          pointLight.position.y = 1;
+          pointLight.userData.velocity.y *= -0.5;
+        }
+        updateLightIntensity();
+      } else {
+        const pos = new THREE.Vector3();
+        camera.getWorldPosition(pos);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        pos.add(forward.multiplyScalar(2));
+        pointLight.position.copy(pos);
+        updateLightIntensity();
+      }
+    }
+
+    // Replace the previous point-light update with this improved position update:
+    function updatePointLightPosition() {
+      if (isGrabbingLight) {
+        // When grabbed, have the light follow the camera:
+        const pos = new THREE.Vector3();
+        camera.getWorldPosition(pos);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        pos.add(forward.multiplyScalar(2)); // 2 units ahead of camera
+        pointLight.position.copy(pos);
+      } else {
+        // When thrown, update via physics:
+        const dt = clock.getDelta();
+        pointLight.userData.velocity.add(lightGravity.clone().multiplyScalar(dt));
+        pointLight.position.add(pointLight.userData.velocity.clone().multiplyScalar(dt));
+
+        // Prevent the light from going below the ground:
+        if (pointLight.position.y < 1) {
+          pointLight.position.y = 1;
+          pointLight.userData.velocity.y *= -0.5; // bounce with damping
+        }
+      }
+    }
 
     // Função de animação
     function animate() {
@@ -308,34 +383,19 @@
       }
 
       // Update physics for the light ball using the same dt
-      if (!isGrabbingLight) {
-          // Simple Euler integration for physics
-          pointLight.userData.velocity.add(lightGravity.clone().multiplyScalar(dt));
-          pointLight.position.add(pointLight.userData.velocity.clone().multiplyScalar(dt));
-          // Apply damping to velocity
-          pointLight.userData.velocity.multiplyScalar(0.99);
-          // Ground collision for light ball
-          if (pointLight.position.y < 1) {
-              pointLight.position.y = 1;
-              pointLight.userData.velocity.y *= -0.5; // rebound with damping
-          }
-      } else {
-          // If grabbed, update light position to follow camera
-          const pos = new THREE.Vector3();
-          camera.getWorldPosition(pos);
-          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-          pos.add(forward.multiplyScalar(2)); // Adjust distance as needed
-          pointLight.position.copy(pos);
-      }
+      updatePointLightPhysics(dt);
 
-      // Update directional light to follow the point light and target the cube's front face:
-      const frontFaceOffset = new THREE.Vector3(0, 0, 1); // Adjust offset as needed
-      directionalLight.position.copy(pointLight.position);
-      directionalLight.target.position.copy(cube.position).add(frontFaceOffset);
-      directionalLightHelper.update();
+      // Remove or comment out the following lines:
+      // const frontFaceOffset = new THREE.Vector3(0, 0, 1); // Adjust offset as needed
+      // directionalLight.position.copy(pointLight.position);
+      // directionalLight.target.position.copy(cube.position).add(frontFaceOffset);
+      // directionalLightHelper.update();
 
       // Ensure the point light helper is directed towards the cube
       pointLightHelper.update();
+
+      // Update point light position according to its state:
+      updatePointLightPosition();
 
       renderer.render(scene, camera);
     }
