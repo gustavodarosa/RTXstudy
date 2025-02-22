@@ -135,22 +135,9 @@
     let isGrabbingLight = false;
 
     window.addEventListener("keydown", (e) => {
-      // Existing keyboard handler for WASD...
       if (e.key.toLowerCase() === "e") {
-        if (!isGrabbingLight) {
-          // Attach light to camera with an offset
-          camera.add(pointLight);
-          pointLight.position.set(1, -1, -2); // Offset relative to camera
-          isGrabbingLight = true;
-          console.log("Light grabbed");
-        } else {
-          // Detach light from camera and make it reappear at the player's position
-          camera.remove(pointLight);
-          pointLight.position.copy(camera.position);
-          scene.add(pointLight);
-          isGrabbingLight = false;
-          console.log("Light dropped at player position");
-        }
+        isGrabbingLight = !isGrabbingLight;
+        console.log(`Light grabbing toggled: ${isGrabbingLight}`);
       }
     });
 
@@ -189,6 +176,14 @@
 
         // Update coordinates display
         coordinatesDisplay.textContent = `X: ${controls.getObject().position.x.toFixed(2)}, Y: ${controls.getObject().position.y.toFixed(2)}, Z: ${controls.getObject().position.z.toFixed(2)}`;
+      }
+
+      if (isGrabbingLight) {
+        const pos = new THREE.Vector3();
+        camera.getWorldPosition(pos);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        pos.add(forward.multiplyScalar(2)); // Adjust distance as needed
+        pointLight.position.copy(pos);
       }
 
       renderer.render(scene, camera);
