@@ -15,6 +15,29 @@
     canvas {
       display: block;
     }
+    #menu {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    #menu button {
+      margin: 10px;
+      padding: 10px;
+      background: #444;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #menu button:hover {
+      background: #666;
+    }
   </style>
   <!-- Import Map para evitar erro de módulos -->
   <script type="importmap">
@@ -28,6 +51,10 @@
 </head>
 <body>
   <div id="coordinates" style="position: absolute; top: 10px; left: 10px; color: white; background: rgba(0, 0, 0, 0.5); padding: 5px;"></div>
+  <div id="menu">
+    <h2>Debug Menu</h2>
+    <button id="toggleWireframe">Toggle Wireframe</button>
+  </div>
   <script type="module">
     import * as THREE from "three";
     import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
@@ -127,8 +154,17 @@
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 20, 10);
     scene.add(directionalLight);
+
+    // Add a target for the directional light
+    const directionalLightTarget = new THREE.Object3D();
+    scene.add(directionalLightTarget);
+    directionalLight.target = directionalLightTarget;
+
+    // Add a helper to visualize the directional light
+    const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5, 0x00ff00);
+    directionalLightHelper.visible = false; // Initially hide the helper
+    scene.add(directionalLightHelper);
 
     // Criando um cubo para testar
     const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
@@ -143,6 +179,11 @@
     pointLight.position.set(3, 2, 0); // Adjust position as needed
     pointLight.castShadow = true;
     scene.add(pointLight);
+
+    // Add a helper to visualize the point light
+    const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.5, 0xff0000);
+    pointLightHelper.visible = false; // Initially hide the helper
+    scene.add(pointLightHelper);
 
     // Add physics properties to pointLight
     pointLight.userData.velocity = new THREE.Vector3();
@@ -201,6 +242,29 @@
              pointLight.intensity = Math.max(0, pointLight.intensity - 0.1);
              console.log(`Light brightness decreased to ${pointLight.intensity.toFixed(2)}`);
         }
+    });
+
+    // Add event listener for 'P' key to toggle menu and cursor visibility
+    window.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "p") {
+        const menu = document.getElementById("menu");
+        const isMenuVisible = menu.style.display === "none";
+        menu.style.display = isMenuVisible ? "block" : "none";
+        document.body.style.cursor = isMenuVisible ? "default" : "none";
+        if (isMenuVisible) {
+          controls.unlock();
+        } else {
+          controls.lock();
+        }
+      }
+    });
+
+    // Add event listener for wireframe toggle button
+    document.getElementById("toggleWireframe").addEventListener("click", () => {
+      cube.material.wireframe = !cube.material.wireframe;
+      pointLightHelper.visible = !pointLightHelper.visible;
+      directionalLightHelper.visible = !directionalLightHelper.visible;
+      console.log(`Wireframe mode: ${cube.material.wireframe}, Point Light Helper: ${pointLightHelper.visible}, Directional Light Helper: ${directionalLightHelper.visible}`);
     });
 
     const coordinatesDisplay = document.getElementById("coordinates");
@@ -264,9 +328,22 @@
           pointLight.position.copy(pos);
       }
 
+      // Update directional light to follow the point light and target the cube's front face:
+      const frontFaceOffset = new THREE.Vector3(0, 0, 1); // Adjust offset as needed
+      directionalLight.position.copy(pointLight.position);
+      directionalLight.target.position.copy(cube.position).add(frontFaceOffset);
+      directionalLightHelper.update();
+
+      // Ensure the point light helper is directed towards the cube
+      pointLightHelper.update();
+
       renderer.render(scene, camera);
     }
     animate();
+
+    // Ensure the camera is positioned to see the cube
+    camera.position.set(0, 5, 10);
+    camera.lookAt(0, 1, 0);
 
     // Ajusta o tamanho da tela quando a janela for redimensionada
     window.addEventListener("resize", () => {
