@@ -1,53 +1,27 @@
-# RTX Simulation
+# Jogo 3D
 
-## Overview
-The RTX Simulation project is designed to simulate the behavior of an RTX system. It provides a framework for initializing, running, and managing the simulation, along with utility functions for performance metrics and logging.
+Este é um jogo 3D simples com controles em primeira pessoa, usando Three.js para renderização e física básica para movimentação e interação com a luz.
 
-## Project Structure
-```
-rtx-simulation
-├── src
-│   ├── index.js          # Entry point of the application
-│   ├── simulation
-│   │   └── rtx.js       # Contains the RTXSimulation class
-│   └── utils
-│       └── helpers.js    # Utility functions for the simulation
-├── package.json          # npm configuration file
-└── README.md             # Project documentation
-```
+## Controles do Jogo
 
-## Installation
-To set up the project, clone the repository and install the necessary dependencies:
+- **Espaço**: Pular  
+- **E**: Pegar/Arremessar a Luz  
+- **W, A, S, D**: Mover o personagem  
+- **+**: Aumentar o brilho da luz  
+- **-**: Diminuir o brilho da luz  
 
-```bash
-git clone <repository-url>
-cd rtx-simulation
-npm install
-```
+## Funcionalidades
 
-## Usage
-To run the simulation, execute the following command:
+- **Movimentação FPS**: Controle do jogador com gravidade e detecção de colisão com o chão.
+- **Física da Luz**: A luz (bola) tem física simulada e pode ser arremessada; ela possui massa de 20 kg.
+- **Interação com Luz**: Use 'E' para alternar entre pegar e arremessar a luz, e ajuste seu brilho com '+' e '-'.
 
-```bash
-node src/index.js
-```
+## Inicialização
 
-## API
-### RTXSimulation Class
-The `RTXSimulation` class provides the following methods:
+1. Clique na tela para iniciar o modo FPS.
+2. Utilize os controles listados para jogar e interagir com a luz.
+3. A câmera controla o movimento do jogador.
 
-- `startSimulation()`: Initializes and starts the simulation.
-- `stopSimulation()`: Stops the ongoing simulation.
-- `updateState(state)`: Updates the current state of the simulation.
+## Contribuição
 
-### Utility Functions
-The project includes utility functions in `helpers.js`:
-
-- `calculatePerformance(data)`: Calculates and returns performance metrics based on the provided data.
-- `logEvent(event)`: Logs events that occur during the simulation for tracking and debugging purposes.
-
-## Contributing
-Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
-
-## License
-This project is licensed under the MIT License.
+Sinta-se à vontade para abrir issues e enviar pull requests para melhorar o projeto.
