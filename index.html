@@ -61,6 +61,21 @@
     instructions.style.cursor = "pointer";
     document.body.appendChild(instructions);
 
+    // Replace the keyboard shortcuts overlay with Portuguese text:
+    const shortcuts = document.createElement("div");
+    shortcuts.innerHTML = `
+        <p style="margin: 0; padding: 5px; font-size: 14px;">
+          Atalhos: <br>
+          Espaço = Pular | E = Pegar/Arremessar a Luz | + = Aumentar Brilho | - = Diminuir Brilho
+        </p>
+    `;
+    shortcuts.style.position = "absolute";
+    shortcuts.style.bottom = "10px";
+    shortcuts.style.width = "100%";
+    shortcuts.style.color = "white";
+    shortcuts.style.textAlign = "center";
+    document.body.appendChild(shortcuts);
+
     instructions.addEventListener("click", () => {
       controls.lock();
     });
@@ -175,6 +190,17 @@
           console.log("Light grabbed");
         }
       }
+    });
+
+    // Add keyboard shortcuts for brightness control:
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "+") {
+             pointLight.intensity += 0.1;
+             console.log(`Light brightness increased to ${pointLight.intensity.toFixed(2)}`);
+        } else if (e.key === "-") {
+             pointLight.intensity = Math.max(0, pointLight.intensity - 0.1);
+             console.log(`Light brightness decreased to ${pointLight.intensity.toFixed(2)}`);
+        }
     });
 
     const coordinatesDisplay = document.getElementById("coordinates");
