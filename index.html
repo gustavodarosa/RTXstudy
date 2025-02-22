@@ -55,6 +55,7 @@
     <h2>Debug Menu</h2>
     <button id="toggleWireframe">Toggle Wireframe</button>
     <button id="toggleLightAttenuation">Toggle Light Attenuation</button>
+    <button id="toggleAmbientLight">Toggle Ambient Light</button> <!-- New -->
   </div>
   <script type="module">
     import * as THREE from "three";
@@ -150,8 +151,8 @@
     // scene.add(gridHelper);
 
     // Iluminação
-    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    // scene.add(ambientLight);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
 
     // Disable directional light:
     // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -172,7 +173,7 @@
     scene.add(cube);
 
     // Create a point light with proper attenuation:
-    const pointLight = new THREE.PointLight(0xffffff, 1, 500, 3); // max range now 50 instead of 20
+    const pointLight = new THREE.PointLight(0xffffff, 1, 50, 3); // increased range from 500 to 1000
     pointLight.position.set(3, 2, 0);
     pointLight.castShadow = true;
     scene.add(pointLight);
@@ -287,6 +288,14 @@
         updateLightIntensity(); // update based on height
       }
       console.log(`Light attenuation enabled: ${attenuationEnabled}`);
+    });
+
+    // New: Ambient light control via debug menu
+    let ambientLightEnabled = true;
+    document.getElementById("toggleAmbientLight").addEventListener("click", () => {
+        ambientLightEnabled = !ambientLightEnabled;
+        ambientLight.intensity = ambientLightEnabled ? 0.6 : 0;
+        console.log(`Ambient light enabled: ${ambientLightEnabled}`);
     });
 
     const coordinatesDisplay = document.getElementById("coordinates");
