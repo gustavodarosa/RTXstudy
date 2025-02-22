@@ -116,29 +116,31 @@
         const delta = clock.getDelta();
         velocity.y += gravity.y * delta; // Apply gravity
 
-        direction.z = Number(keys["w"]) - Number(keys["s"]);
-        direction.x = Number(keys["a"]) - Number(keys["d"]);
+        // Fix: use conditional expressions to default missing keys to 0
+        direction.z = (keys["w"] ? 1 : 0) - (keys["s"] ? 1 : 0);
+        direction.x = (keys["d"] ? 1 : 0) - (keys["a"] ? 1 : 0);
         direction.normalize(); // Ensure consistent movement in all directions
 
-        if (keys["w"] || keys["s"]) velocity.z -= direction.z * 400.0 * delta;
-        if (keys["a"] || keys["d"]) velocity.x -= direction.x * 400.0 * delta;
+        // Lower the speed by reducing the multipliers from 400.0 to 200.0
+        if (keys["w"] || keys["s"]) velocity.z -= direction.z * 200.0 * delta;
+        if (keys["a"] || keys["d"]) velocity.x -= direction.x * 200.0 * delta;
 
         controls.moveRight(-velocity.x * delta);
         controls.moveForward(-velocity.z * delta);
 
         // Simple collision detection with the ground
-        if (camera.position.y + velocity.y * delta < 1.75) {
+        if (controls.getObject().position.y + velocity.y * delta < 1.75) {
           velocity.y = 0;
-          camera.position.y = 1.75;
+          controls.getObject().position.y = 1.75;
         } else {
-          camera.position.y += velocity.y * delta;
+          controls.getObject().position.y += velocity.y * delta;
         }
 
         velocity.x -= velocity.x * 10.0 * delta;
         velocity.z -= velocity.z * 10.0 * delta;
 
         // Update coordinates display
-        coordinatesDisplay.textContent = `X: ${camera.position.x.toFixed(2)}, Y: ${camera.position.y.toFixed(2)}, Z: ${camera.position.z.toFixed(2)}`;
+        coordinatesDisplay.textContent = `X: ${controls.getObject().position.x.toFixed(2)}, Y: ${controls.getObject().position.y.toFixed(2)}, Z: ${controls.getObject().position.z.toFixed(2)}`;
       }
 
       renderer.render(scene, camera);
