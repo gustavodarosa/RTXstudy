@@ -115,6 +115,11 @@
     pointLight.castShadow = true;
     scene.add(pointLight);
 
+    // Add physics properties to pointLight
+    pointLight.userData.velocity = new THREE.Vector3();
+    pointLight.userData.mass = 1;
+    const lightGravity = new THREE.Vector3(0, -9.8, 0);
+
     // Add a sprite to the point light for a 2D white circle appearance
     const spriteCanvas = document.createElement("canvas");
     spriteCanvas.width = 64;
@@ -146,44 +151,60 @@
     // Função de animação
     function animate() {
       requestAnimationFrame(animate);
+      
+      // Compute delta time once:
+      const dt = Math.min(clock.getDelta(), 0.03);
 
       if (controls.isLocked === true) {
-        const delta = clock.getDelta();
-        velocity.y += gravity.y * delta; // Apply gravity
+          // Player movement update using dt
+          velocity.y += gravity.y * dt; // Apply gravity
 
-        // Fix: use conditional expressions to default missing keys to 0
-        direction.z = (keys["w"] ? 1 : 0) - (keys["s"] ? 1 : 0);
-        direction.x = (keys["d"] ? 1 : 0) - (keys["a"] ? 1 : 0);
-        direction.normalize(); // Ensure consistent movement in all directions
+          // Fix: use conditional expressions to default missing keys to 0
+          direction.z = (keys["w"] ? 1 : 0) - (keys["s"] ? 1 : 0);
+          direction.x = (keys["d"] ? 1 : 0) - (keys["a"] ? 1 : 0);
+          direction.normalize(); // Ensure consistent movement in all directions
 
-        // Lower the speed by reducing the multipliers from 400.0 to 200.0
-        if (keys["w"] || keys["s"]) velocity.z -= direction.z * 200.0 * delta;
-        if (keys["a"] || keys["d"]) velocity.x -= direction.x * 200.0 * delta;
+          // Lower the speed by reducing multipliers
+          if (keys["w"] || keys["s"]) velocity.z -= direction.z * 200.0 * dt;
+          if (keys["a"] || keys["d"]) velocity.x -= direction.x * 200.0 * dt;
 
-        controls.moveRight(-velocity.x * delta);
-        controls.moveForward(-velocity.z * delta);
+          controls.moveRight(-velocity.x * dt);
+          controls.moveForward(-velocity.z * dt);
 
-        // Simple collision detection with the ground
-        if (controls.getObject().position.y + velocity.y * delta < 1.75) {
-          velocity.y = 0;
-          controls.getObject().position.y = 1.75;
-        } else {
-          controls.getObject().position.y += velocity.y * delta;
-        }
+          // Simple collision detection with the ground
+          if (controls.getObject().position.y + velocity.y * dt < 1.75) {
+              velocity.y = 0;
+              controls.getObject().position.y = 1.75;
+          } else {
+              controls.getObject().position.y += velocity.y * dt;
+          }
 
-        velocity.x -= velocity.x * 10.0 * delta;
-        velocity.z -= velocity.z * 10.0 * delta;
+          velocity.x -= velocity.x * 10.0 * dt;
+          velocity.z -= velocity.z * 10.0 * dt;
 
-        // Update coordinates display
-        coordinatesDisplay.textContent = `X: ${controls.getObject().position.x.toFixed(2)}, Y: ${controls.getObject().position.y.toFixed(2)}, Z: ${controls.getObject().position.z.toFixed(2)}`;
+          // Update coordinates display
+          coordinatesDisplay.textContent = `X: ${controls.getObject().position.x.toFixed(2)}, Y: ${controls.getObject().position.y.toFixed(2)}, Z: ${controls.getObject().position.z.toFixed(2)}`;
       }
 
-      if (isGrabbingLight) {
-        const pos = new THREE.Vector3();
-        camera.getWorldPosition(pos);
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        pos.add(forward.multiplyScalar(2)); // Adjust distance as needed
-        pointLight.position.copy(pos);
+      // Update physics for the light ball using the same dt
+      if (!isGrabbingLight) {
+          // Simple Euler integration for physics
+          pointLight.userData.velocity.add(lightGravity.clone().multiplyScalar(dt));
+          pointLight.position.add(pointLight.userData.velocity.clone().multiplyScalar(dt));
+          // Apply damping to velocity
+          pointLight.userData.velocity.multiplyScalar(0.99);
+          // Ground collision for light ball
+          if (pointLight.position.y < 1) {
+              pointLight.position.y = 1;
+              pointLight.userData.velocity.y *= -0.5; // rebound with damping
+          }
+      } else {
+          // If grabbed, update light position to follow camera
+          const pos = new THREE.Vector3();
+          camera.getWorldPosition(pos);
+          const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          pos.add(forward.multiplyScalar(2)); // Adjust distance as needed
+          pointLight.position.copy(pos);
       }
 
       renderer.render(scene, camera);
